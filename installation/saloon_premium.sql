@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS `saloon_premium_cashbox` (
 CREATE TABLE IF NOT EXISTS `saloon_premium_transactions` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `saloon` VARCHAR(50) NOT NULL,
-    `type` ENUM('sale', 'withdraw', 'tip', 'refill', 'craft') NOT NULL,
+    `type` ENUM('sale', 'withdraw', 'deposit', 'tip', 'refill', 'craft', 'storage_withdraw') NOT NULL,
     `amount` DECIMAL(10,2) NOT NULL,
     `item` VARCHAR(50),
     `quantity` INT,

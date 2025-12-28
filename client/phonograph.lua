@@ -1,7 +1,6 @@
 -- ============================================================================
 -- RSG SALOON PREMIUM - PHONOGRAPH SYSTEM
 -- Play music from URLs on phonograph props at saloons
--- Enhanced version based on boss-phonograph by BossDev
 -- Uses xsound for audio, ox_lib for menus (no jo_libs needed)
 -- ============================================================================
 

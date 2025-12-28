@@ -30,6 +30,7 @@ client_scripts {
 
 server_scripts {
     '@oxmysql/lib/MySQL.lua',
+    'server/logs.lua',
     'server/main.lua',
     'server/crafting.lua',
     'server/shop.lua',

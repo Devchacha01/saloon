@@ -1,11 +1,6 @@
-/* ============================================================================
-   RSG SALOON PREMIUM - APP.JS
-   Main JavaScript application for NUI
-   ============================================================================ */
 
-// ============================================================================
-// STATE
-// ============================================================================
+
+
 
 // Resource name for NUI callbacks
 const RESOURCE_NAME = 'rsg-saloon';
@@ -15,6 +10,7 @@ let state = {
     saloonName: '',
     isEmployee: false,
     playerGrade: 0,
+    playerGradeLabel: '',
     permissions: {
         canCraft: false,
         canRefill: false,
@@ -34,9 +30,7 @@ let state = {
     selectedItem: null,
 };
 
-// ============================================================================
-// NUI MESSAGE HANDLER
-// ============================================================================
+
 
 window.addEventListener('message', function (event) {
     const data = event.data;
@@ -54,9 +48,7 @@ window.addEventListener('message', function (event) {
     }
 });
 
-// ============================================================================
-// KEYBOARD HANDLER
-// ============================================================================
+
 
 document.addEventListener('keydown', function (event) {
     if (event.key === 'Escape') {
@@ -64,9 +56,7 @@ document.addEventListener('keydown', function (event) {
     }
 });
 
-// ============================================================================
-// MENU FUNCTIONS
-// ============================================================================
+
 
 function openMenu(data) {
     // Update state
@@ -74,6 +64,7 @@ function openMenu(data) {
     state.saloonName = data.saloonName;
     state.isEmployee = data.isEmployee;
     state.playerGrade = data.playerGrade;
+    state.playerGradeLabel = data.playerGradeLabel || `Grade ${state.playerGrade}`;
     state.permissions = data.permissions;
     state.shopStock = data.shopStock || [];
     state.storage = data.storage || [];
@@ -91,7 +82,7 @@ function openMenu(data) {
     const badge = document.getElementById('employee-badge');
     if (state.isEmployee) {
         badge.classList.remove('hidden');
-        badge.innerHTML = `<i class="fas fa-id-badge"></i> Grade ${state.playerGrade}`;
+        badge.innerHTML = `<i class="fas fa-id-badge"></i> ${state.playerGradeLabel}`;
     } else {
         badge.classList.add('hidden');
     }
@@ -149,13 +140,14 @@ function closeMenu() {
     });
 }
 
-// ============================================================================
-// TAB MANAGEMENT
-// ============================================================================
+
 
 function updateTabVisibility() {
-    // Employee-only tabs
+    // Employee-only tabs (common)
     document.querySelectorAll('.tab.employee-only').forEach(tab => {
+        // Staff tab is special case
+        if (tab.getAttribute('data-tab') === 'employees') return;
+
         if (state.isEmployee) {
             tab.classList.remove('hidden');
         } else {
@@ -171,6 +163,16 @@ function updateTabVisibility() {
             tab.classList.add('hidden');
         }
     });
+
+    // Staff tab - specific permission check
+    const staffTab = document.querySelector('[data-tab="employees"]');
+    if (staffTab) {
+        if (state.permissions.canManageEmployees) {
+            staffTab.classList.remove('hidden');
+        } else {
+            staffTab.classList.add('hidden');
+        }
+    }
 }
 
 function switchTab(tabName) {
@@ -185,11 +187,18 @@ function switchTab(tabName) {
         panel.classList.remove('active');
     });
     document.getElementById(`${tabName}-tab`).classList.add('active');
+
+    // Trigger data fetch for specific tabs
+    if (tabName === 'employees') {
+        getEmployees();
+    } else if (tabName === 'cashbox') {
+        updateCashboxDisplay();
+    } else if (tabName === 'managers_logs') {
+        getManagerLogs();
+    }
 }
 
-// ============================================================================
-// SHOP RENDERING
-// ============================================================================
+
 
 function renderShopItems() {
     const container = document.getElementById('shop-items');
@@ -244,9 +253,7 @@ function filterShop(filter) {
     renderShopItems();
 }
 
-// ============================================================================
-// CRAFTING RENDERING
-// ============================================================================
+
 
 function renderCraftingRecipes() {
     const container = document.getElementById('crafting-recipes');
@@ -323,9 +330,7 @@ function startCrafting(itemName) {
     });
 }
 
-// ============================================================================
-// SERVE FUNCTIONS (Prop Placement)
-// ============================================================================
+
 
 // Prop models for craftable items
 const PROP_MODELS = {
@@ -422,9 +427,7 @@ function serveFood(model, label, itemName) {
     });
 }
 
-// ============================================================================
-// STORAGE RENDERING
-// ============================================================================
+
 
 function renderStorageItems() {
     const container = document.getElementById('storage-items');
@@ -442,19 +445,52 @@ function renderStorageItems() {
     }
 
     container.innerHTML = items.map(item => `
-        <div class="item-card stagger-item">
+        <div class="item-card stagger-item hover-lift" onclick="openWithdrawModal('${item.item}', '${item.label}', ${item.quantity})">
             <img class="item-image" src="${state.imgPath}${item.image || item.item + '.png'}" alt="${item.label}" onerror="this.src='${state.imgPath}placeholder.png'">
             <div class="item-info">
                 <div class="item-name">${item.label}</div>
                 <div class="item-stock">Quantity: ${item.quantity}</div>
+                <div class="item-sub">Click to Withdraw</div>
             </div>
         </div>
     `).join('');
 }
 
-// ============================================================================
-// REFILL RENDERING
-// ============================================================================
+function openWithdrawModal(itemName, label, quantity) {
+    state.selectedItem = { item: itemName, label: label, quantity: quantity };
+
+    document.getElementById('withdraw-item-image').src = state.imgPath + (itemName + '.png');
+    document.getElementById('withdraw-item-name').textContent = label;
+    document.getElementById('withdraw-item-storage').textContent = `In Storage: ${quantity}`;
+    document.getElementById('withdraw-quantity').value = 1;
+    document.getElementById('withdraw-quantity').max = quantity;
+
+    document.getElementById('withdraw-modal').classList.remove('hidden');
+}
+
+function confirmWithdraw() {
+    if (!state.selectedItem) return;
+    if (state.isProcessing) return; // Prevent double-click
+
+    state.isProcessing = true;
+
+    const quantity = parseInt(document.getElementById('withdraw-quantity').value) || 1;
+
+    fetch(`https://${RESOURCE_NAME}/withdrawStorage`, {
+        method: 'POST',
+        body: JSON.stringify({
+            saloonId: state.saloonId,
+            item: state.selectedItem.item,
+            quantity: quantity
+        })
+    }).finally(() => {
+        state.isProcessing = false;
+    });
+
+    closeModal('withdraw-modal');
+}
+
+
 
 function renderRefillItems() {
     const container = document.getElementById('refill-items');
@@ -483,9 +519,7 @@ function renderRefillItems() {
     `).join('');
 }
 
-// ============================================================================
-// CASHBOX
-// ============================================================================
+
 
 function updateCashboxDisplay() {
     document.getElementById('cashbox-balance').textContent = `$${parseFloat(state.cashboxBalance).toFixed(2)}`;
@@ -543,9 +577,25 @@ function withdrawCashbox() {
     });
 }
 
-// ============================================================================
-// MODALS
-// ============================================================================
+function depositCashbox() {
+    const amount = parseFloat(document.getElementById('deposit-amount').value);
+
+    if (!amount || amount <= 0) {
+        return;
+    }
+
+    fetch(`https://${RESOURCE_NAME}/depositCashbox`, {
+        method: 'POST',
+        body: JSON.stringify({
+            saloonId: state.saloonId,
+            amount: amount
+        })
+    }).then(() => {
+        document.getElementById('deposit-amount').value = '';
+    });
+}
+
+
 
 function openPurchaseModal(itemName) {
     const item = state.shopStock.find(i => i.item === itemName);
@@ -608,6 +658,152 @@ function openRefillModal(itemName, label, storageQty, defaultPrice) {
     document.getElementById('refill-modal').classList.remove('hidden');
 }
 
+
+
+
+
+function renderEmployees() {
+    // This would typically fetch from server, but for now we'll assume state.employees is populated
+    // or we fetch it when tab is opened
+
+    // Trigger fetch if empty (logic would be in switchTab)
+}
+
+function updateEmployeesList(employees) {
+    const container = document.getElementById('employees-list');
+    const badge = document.getElementById('employee-count');
+
+    badge.textContent = `${employees.length} / 4 Staff`;
+
+    if (employees.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No employees hired yet.</p></div>';
+        return;
+    }
+
+    container.innerHTML = employees.map(emp => {
+        const isSelf = false; // Logic to check if this is the current player
+        const canManage = state.playerGrade > emp.grade && state.playerGrade >= 2;
+        const canPromote = state.playerGrade === 3 && emp.grade < 2; // Only Boss can promote
+        const canFire = state.playerGrade === 3; // Only Boss can fire
+
+        let actions = '';
+        if (canManage && !isSelf) {
+            if (canPromote) {
+                actions += `
+                    <button class="btn-icon" title="Promote" onclick="promoteEmployee('${emp.citizenid}')">
+                        <i class="fas fa-arrow-up"></i>
+                    </button>
+                `;
+            }
+            if (canFire) {
+                actions += `
+                    <button class="btn-icon btn-danger" title="Fire" onclick="fireEmployee('${emp.citizenid}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
+            }
+        }
+
+        return `
+            <div class="employee-row">
+                <div class="emp-name">
+                    <div class="name">${emp.firstname} ${emp.lastname}</div>
+                    <div class="citizenid">${emp.citizenid}</div>
+                </div>
+                <div class="emp-rank">
+                    <span class="rank-badge grade-${emp.grade}">${emp.gradeLabel}</span>
+                </div>
+                <div class="emp-stats text-right">
+                    <div><i class="fas fa-hammer"></i> ${emp.itemsCrafted}</div>
+                    <div><i class="fas fa-dollar-sign"></i> ${emp.salesTotal.toFixed(2)}</div>
+                </div>
+                <div class="emp-actions text-right">
+                    ${actions}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function getEmployees() {
+    fetch(`https://${RESOURCE_NAME}/getEmployees`, {
+        method: 'POST',
+        body: JSON.stringify({
+            saloonId: state.saloonId
+        })
+    }).then(resp => resp.json()).then(data => {
+        updateEmployeesList(data);
+    });
+}
+
+function fireEmployee(citizenid) {
+    fetch(`https://${RESOURCE_NAME}/firePlayer`, {
+        method: 'POST',
+        body: JSON.stringify({
+            saloonId: state.saloonId,
+            targetId: citizenid
+        })
+    }).then(() => {
+        getEmployees(); // Refresh list
+    });
+}
+
+function promoteEmployee(citizenid) {
+    // Logic for promotion would go here
+    fetch(`https://${RESOURCE_NAME}/promotePlayer`, {
+        method: 'POST',
+        body: JSON.stringify({
+            saloonId: state.saloonId,
+            targetId: citizenid
+        })
+    }).then(() => {
+        getEmployees(); // Refresh list
+    });
+}
+
+function openHireModal() {
+    const list = document.getElementById('hire-player-list');
+    list.innerHTML = '<div class="loader"><i class="fas fa-spinner fa-spin"></i> Searching...</div>';
+    document.getElementById('hire-modal').classList.remove('hidden');
+
+    fetch(`https://${RESOURCE_NAME}/getNearbyPlayers`, {
+        method: 'POST',
+        body: JSON.stringify({})
+    }).then(resp => resp.json()).then(players => {
+        if (!players || players.length === 0) {
+            list.innerHTML = '<div class="empty-state">No players nearby</div>';
+            return;
+        }
+
+        list.innerHTML = players.map(p => `
+            <div class="player-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <div class="player-info">
+                    <span class="player-name" style="font-weight: bold;">${p.name}</span>
+                    <span class="player-id" style="opacity: 0.7; font-size: 0.9em;">(ID: ${p.id})</span>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="hirePlayerFromModal(${p.id})">
+                    Hire
+                </button>
+            </div>
+        `).join('');
+    });
+}
+
+function hirePlayerFromModal(targetId) {
+    fetch(`https://${RESOURCE_NAME}/hirePlayer`, {
+        method: 'POST',
+        body: JSON.stringify({
+            saloonId: state.saloonId,
+            targetId: targetId
+        })
+    });
+    closeModal('hire-modal');
+    // Refresh employee list after a delay
+    setTimeout(getEmployees, 1000);
+}
+
+
+
 function confirmRefill() {
     if (!state.selectedItem) return;
 
@@ -627,13 +823,47 @@ function confirmRefill() {
     closeModal('refill-modal');
 }
 
+// ============================================================================
+// LOGS
+// ============================================================================
+
+function getManagerLogs() {
+    fetch(`https://${RESOURCE_NAME}/getLogs`, {
+        method: 'POST',
+        body: JSON.stringify({
+            saloonId: state.saloonId
+        })
+    }).then(resp => resp.json()).then(logs => {
+        renderLogs(logs);
+    });
+}
+
+function renderLogs(logs) {
+    const container = document.getElementById('logs-list');
+
+    if (!logs || logs.length === 0) {
+        container.innerHTML = '<div class="empty-state">No logs available</div>';
+        return;
+    }
+
+    container.innerHTML = logs.map(log => {
+        const time = new Date(log.timestamp).toLocaleString();
+        return `
+            <div class="log-item">
+                <div class="log-time">${time}</div>
+                <div class="log-type action-type-${log.type}">${log.type}</div>
+                <div class="log-message">${log.message}</div>
+                <div class="log-staff">${log.player_name || 'Unknown'}</div>
+            </div>
+        `;
+    }).join('');
+}
+
 function closeModal(modalId) {
     document.getElementById(modalId).classList.add('hidden');
     state.selectedItem = null;
 }
 
-// ============================================================================
-// UTILITY
-// ============================================================================
+
 
 // Resource name is defined at the top of the file as RESOURCE_NAME

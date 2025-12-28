@@ -1,29 +1,21 @@
 Config = {}
 
--- ============================================================================
--- GENERAL SETTINGS
--- ============================================================================
+
 Config.Debug = false
 Config.Keybind = 'J'                    -- Keybind to open menu (set to false for target only)
 Config.Img = 'nui://rsg-inventory/html/images/'  -- Path to item images
 
--- ============================================================================
--- STORAGE SETTINGS
--- ============================================================================
+
 Config.StorageMaxWeight = 500000
 Config.StorageMaxSlots = 100
 
--- ============================================================================
--- FINANCIAL SETTINGS
--- ============================================================================
+
 Config.MinWithdraw = 1.0
 Config.MaxWithdraw = 50000.0
 Config.TipsEnabled = true
 Config.DefaultTipPercent = 10
 
--- ============================================================================
--- JUKEBOX / MUSIC SETTINGS
--- ============================================================================
+
 Config.JukeboxEnabled = true
 Config.JukeboxDefaultVolume = 0.5
 Config.JukeboxRadius = 50.0
@@ -35,19 +27,14 @@ Config.JukeboxTracks = {
     { name = 'Harmonica Blues', file = 'harmonica1.mp3' },
 }
 
--- ============================================================================
--- MAP BLIP SETTINGS
--- ============================================================================
+
 Config.Blip = {
     name = 'Saloon',
     sprite = 'blip_saloon',
     scale = 0.2
 }
 
--- ============================================================================
--- SALOON LOCATIONS
--- Each saloon has its own job, coordinates, and grade requirements
--- ============================================================================
+
 Config.Saloons = {
     ['valsaloontender'] = {
         name = 'Valentine Saloon',
@@ -55,10 +42,10 @@ Config.Saloons = {
         showBlip = true,
         -- Grade Requirements (0 = all, 1 = bartender+, 2 = manager+, 3 = owner only)
         grades = {
-            crafting = 0,       -- Who can craft
-            refill = 1,         -- Who can refill shop
-            cashbox = 2,        -- Who can view/withdraw cashbox
-            employees = 3,      -- Who can manage employees
+            crafting = 0,
+            refill = 1,
+            cashbox = 2,
+            employees = 2,      -- Allow Managers to manage employees
         },
         -- Interaction points
         points = {
@@ -107,7 +94,7 @@ Config.Saloons = {
             crafting = 0,
             refill = 1,
             cashbox = 2,
-            employees = 3,
+            employees = 2,
         },
         points = {
             bar = vector3(2792.37, -1168.41, 47.93),
@@ -123,7 +110,7 @@ Config.Saloons = {
             crafting = 0,
             refill = 1,
             cashbox = 2,
-            employees = 3,
+            employees = 2,
         },
         points = {
             bar = vector3(2639.84, -1224.26, 53.38),
@@ -139,7 +126,7 @@ Config.Saloons = {
             crafting = 0,
             refill = 1,
             cashbox = 2,
-            employees = 3,
+            employees = 2,
         },
         points = {
             bar = vector3(2947.84, 528.06, 45.33),
@@ -155,7 +142,7 @@ Config.Saloons = {
             crafting = 0,
             refill = 1,
             cashbox = 2,
-            employees = 3,
+            employees = 2,
         },
         points = {
             bar = vector3(-3699.80, -2594.40, -13.31),
@@ -171,7 +158,7 @@ Config.Saloons = {
             crafting = 0,
             refill = 1,
             cashbox = 2,
-            employees = 3,
+            employees = 2,
         },
         points = {
             bar = vector3(-5518.47, -2906.51, -1.75),
@@ -181,11 +168,7 @@ Config.Saloons = {
     },
 }
 
--- ============================================================================
--- CRAFTING RECIPES
--- category: 'drinks' or 'food'
--- yield: how many items player gets per craft
--- ============================================================================
+
 Config.Recipes = {
     -- ========== DRINKS ==========
     {
@@ -363,9 +346,7 @@ Config.Recipes = {
     },
 }
 
--- ============================================================================
--- DEFAULT PRICES (when adding items to shop)
--- ============================================================================
+
 Config.DefaultPrices = {
     -- Drinks
     beer = 5.00,
@@ -386,9 +367,7 @@ Config.DefaultPrices = {
     roastedmeat = 7.00,
 }
 
--- ============================================================================
--- DRUNK EFFECTS (optional)
--- ============================================================================
+
 Config.DrunkEffects = {
     enabled = true,
     alcoholItems = { 'beer', 'whiskey', 'vodka', 'tequila', 'rum', 'wine' },
@@ -396,9 +375,7 @@ Config.DrunkEffects = {
     maxDrunkLevel = 5,       -- After 5 drinks, max effect
 }
 
--- ============================================================================
--- NOTIFICATIONS LOCALE
--- ============================================================================
+
 Config.Locale = {
     -- General
     ['no_permission'] = 'You do not have permission to do this.',
@@ -445,13 +422,9 @@ Config.Locale = {
     ['bill_paid'] = 'Bill paid.',
 }
 
--- ============================================================================
--- V2.0 FEATURES
--- ============================================================================
 
--- ============================================================================
--- SERVABLE DRINKS (Props that can be placed on tables)
--- ============================================================================
+
+
 Config.ServableDrinks = {
     -- Beers
     { model = 'p_bottlebeer01x', label = 'Pioneer Beer', alcohol = 0.1, type = 'small' },
@@ -489,9 +462,7 @@ Config.ServableDrinks = {
     { model = 'p_bottle01x', label = 'Milk', alcohol = 0, type = 'other' },
 }
 
--- ============================================================================
--- SERVABLE FOODS (Bowls/Stews)
--- ============================================================================
+
 Config.ServableFoods = {
     { model = 'p_bowl04x_stew', label = 'Meat Stew' },
     { model = 'p_bacon_cabbage01x', label = 'Bacon Salad' },
@@ -506,9 +477,7 @@ Config.ServableFoods = {
     { model = 'p_crab_plate_02', label = 'Crab Plate' },
 }
 
--- ============================================================================
--- PLATE MAIN DISHES
--- ============================================================================
+
 Config.PlateMainDishes = {
     { model = 'p_main_breastmutton01x', label = 'Lamb Breast' },
     { model = 'p_main_cornedbeef01x', label = 'Corned Beef' },
@@ -521,16 +490,12 @@ Config.PlateMainDishes = {
     { model = 'p_main_roastbeef01x', label = 'Roast Beef' },
 }
 
--- ============================================================================
--- PLATE SIDE DISHES
--- ============================================================================
+
 Config.PlateSideDishes = {
     { model = 'P_SIDE_GREENPEASPOTATO01X', label = 'Potatoes & Peas' },
 }
 
--- ============================================================================
--- PLATE STYLES
--- ============================================================================
+
 Config.PlateStyles = {
     { model = 'p_plate01x', label = 'White Plate' },
     { model = 'p_plate02x', label = 'Decorated White Plate' },
@@ -538,9 +503,7 @@ Config.PlateStyles = {
     { model = 'p_plate17x', label = 'Simple Plate' },
 }
 
--- ============================================================================
--- PIANO SYSTEM
--- ============================================================================
+
 Config.PianoEnabled = true
 Config.PianoTipInterval = 30 -- seconds between tip chances
 Config.PianoTipChance = 75 -- % chance to receive tip
@@ -600,10 +563,7 @@ Config.PianoLocations = {
     },
 }
 
--- ============================================================================
--- PHONOGRAPH SYSTEM
--- Uses xsound for URL audio playback
--- ============================================================================
+
 Config.PhonographEnabled = true
 Config.PhonographVolume = 0.3 -- Default volume (0.0 - 1.0)
 Config.PhonographDistance = 15 -- Audio range in meters

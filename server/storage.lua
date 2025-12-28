@@ -41,7 +41,7 @@ RSGCore.Functions.CreateCallback('rsg-saloon-premium:server:getStorage', functio
         local itemInfo = RSGCore.Shared.Items[storage.item]
         table.insert(enrichedStorage, {
             item = storage.item,
-            label = itemInfo and itemInfo.label or storage.item,
+            label = RSGCore.Shared.Items[storage.item] and RSGCore.Shared.Items[storage.item].label or storage.item,
             quantity = storage.quantity,
             image = itemInfo and itemInfo.image or (storage.item .. '.png'),
             defaultPrice = Config.DefaultPrices[storage.item] or 1.00,
@@ -145,6 +145,67 @@ RegisterNetEvent('rsg-saloon-premium:server:refillShop', function(saloonId, item
     TriggerClientEvent('rsg-saloon-premium:client:refreshUI', source, saloonId)
     
     DebugPrint('Refilled shop:', itemName, 'x', quantity, '@', price, 'by', playerName)
+end)
+
+-- ============================================================================
+-- WITHDRAW FROM STORAGE
+-- ============================================================================
+
+RegisterNetEvent('rsg-saloon-premium:server:withdrawStorage', function(saloonId, itemName, quantity)
+    local source = source
+    local Player = RSGCore.Functions.GetPlayer(source)
+    
+    if not Player then return end
+    
+    local playerJob = Player.PlayerData.job.name
+    
+    -- Check if employee at this saloon
+    if playerJob ~= saloonId then
+        TriggerClientEvent('ox_lib:notify', source, { type = 'error', description = Config.Locale['not_employee'] })
+        return
+    end
+    
+    quantity = math.max(1, math.floor(quantity or 1))
+    
+    -- Check storage quantity
+    local storageData = MySQL.query.await(
+        'SELECT quantity FROM saloon_premium_storage WHERE saloon = ? AND item = ?',
+        { saloonId, itemName }
+    )
+    
+    if not storageData or not storageData[1] or storageData[1].quantity < quantity then
+        TriggerClientEvent('ox_lib:notify', source, { type = 'error', description = Config.Locale['no_storage'] })
+        return
+    end
+    
+    -- Remove from storage
+    if storageData[1].quantity == quantity then
+         MySQL.query.await('DELETE FROM saloon_premium_storage WHERE saloon = ? AND item = ?', { saloonId, itemName })
+    else
+         MySQL.query.await('UPDATE saloon_premium_storage SET quantity = quantity - ? WHERE saloon = ? AND item = ?', { quantity, saloonId, itemName })
+    end
+    
+    -- Add to player inventory
+    Player.Functions.AddItem(itemName, quantity)
+    TriggerClientEvent('inventory:client:ItemBox', source, RSGCore.Shared.Items[itemName], 'add')
+    
+    -- Log action
+    local citizenid = Player.PlayerData.citizenid
+    local playerName = Player.PlayerData.charinfo.firstname .. ' ' .. Player.PlayerData.charinfo.lastname
+    local itemLabel = RSGCore.Shared.Items[itemName].label
+    
+    if LogAction then
+        LogAction(saloonId, 'storage_withdraw', string.format('Withdrew %dx %s', quantity, itemLabel), citizenid, playerName)
+    end
+    
+    -- Notify player
+    TriggerClientEvent('ox_lib:notify', source, {
+        type = 'success',
+        description = string.format('Withdrew %dx %s', quantity, itemLabel)
+    })
+    
+    -- Refresh UI
+    TriggerClientEvent('rsg-saloon-premium:client:refreshUI', source, saloonId)
 end)
 
 -- ============================================================================

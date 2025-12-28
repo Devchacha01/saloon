@@ -53,6 +53,16 @@ RegisterNetEvent('rsg-saloon-premium:server:hirePlayer', function(targetId, salo
         return
     end
     
+    -- Check employee limit (Max 4)
+    local employeeCount = MySQL.scalar.await('SELECT COUNT(*) FROM players WHERE job = ?', { saloonId })
+    if employeeCount >= 4 then
+        TriggerClientEvent('ox_lib:notify', source, {
+            type = 'error',
+            description = 'Maximum employee limit reached (4).'
+        })
+        return
+    end
+
     -- Cannot hire someone to a higher grade than yourself
     if grade >= playerGrade then
         TriggerClientEvent('ox_lib:notify', source, {
@@ -91,6 +101,77 @@ RegisterNetEvent('rsg-saloon-premium:server:hirePlayer', function(targetId, salo
 end)
 
 -- ============================================================================
+-- PROMOTE PLAYER
+-- ============================================================================
+
+RegisterNetEvent('rsg-saloon-premium:server:promotePlayer', function(targetCitizenId, saloonId)
+    local source = source
+    local Player = RSGCore.Functions.GetPlayer(source)
+    
+    if not Player then return end
+
+    local saloonConfig = Config.Saloons[saloonId]
+    if not saloonConfig then return end
+
+    -- Check if promoting player is Boss (Grade 3)
+    local playerJob = Player.PlayerData.job.name
+    local playerGrade = Player.PlayerData.job.grade.level
+    
+    if playerJob ~= saloonId or playerGrade < 3 then
+        TriggerClientEvent('ox_lib:notify', source, {
+            type = 'error',
+            description = 'Only the Boss can promote employees.'
+        })
+        return
+    end
+
+    -- Find target player
+    local TargetPlayer = RSGCore.Functions.GetPlayerByCitizenId(targetCitizenId)
+    
+    if TargetPlayer then
+        -- Player is online
+        local targetJob = TargetPlayer.PlayerData.job.name
+        local targetGrade = TargetPlayer.PlayerData.job.grade.level
+        
+        if targetJob ~= saloonId then
+             TriggerClientEvent('ox_lib:notify', source, { type = 'error', description = 'Player does not work here.' })
+             return
+        end
+        
+        if targetGrade >= 2 then
+            TriggerClientEvent('ox_lib:notify', source, { type = 'error', description = 'Cannot promote further (Max: Manager).' })
+            return
+        end
+        
+        local newGrade = targetGrade + 1
+        TargetPlayer.Functions.SetJob(saloonId, newGrade)
+        
+        TriggerClientEvent('ox_lib:notify', source, {
+            type = 'success',
+            description = string.format('Promoted to %s', GetGradeLabel(newGrade))
+        })
+        TriggerClientEvent('ox_lib:notify', TargetPlayer.PlayerData.source, {
+            type = 'success',
+            description = string.format('You have been promoted to %s!', GetGradeLabel(newGrade))
+        })
+    else
+        -- Player offline - check DB
+        local targetData = MySQL.single.await('SELECT job, job_grade FROM players WHERE citizenid = ?', { targetCitizenId })
+        if targetData and targetData.job == saloonId then
+             if targetData.job_grade >= 2 then
+                TriggerClientEvent('ox_lib:notify', source, { type = 'error', description = 'Cannot promote further (Max: Manager).' })
+                return
+             end
+             
+             MySQL.update.await('UPDATE players SET job_grade = job_grade + 1 WHERE citizenid = ?', { targetCitizenId })
+             TriggerClientEvent('ox_lib:notify', source, { type = 'success', description = 'Employee promoted.' })
+        else
+            TriggerClientEvent('ox_lib:notify', source, { type = 'error', description = 'Employee not found.' })
+        end
+    end
+end)
+
+-- ============================================================================
 -- FIRE PLAYER
 -- ============================================================================
 
@@ -109,14 +190,15 @@ RegisterNetEvent('rsg-saloon-premium:server:firePlayer', function(targetCitizenI
         return
     end
     
-    -- Check if firing player has permission
+    -- Check if firing player has permission (Only Boss/Owner can fire - Grade 3)
     local playerJob = Player.PlayerData.job.name
     local playerGrade = Player.PlayerData.job.grade.level
     
-    if playerJob ~= saloonId or playerGrade < saloonConfig.grades.employees then
+    -- Grade 3 is required to fire (Boss)
+    if playerJob ~= saloonId or playerGrade < 3 then
         TriggerClientEvent('ox_lib:notify', source, {
             type = 'error',
-            description = 'You do not have permission to fire employees.'
+            description = 'Only the Boss can fire employees.'
         })
         return
     end
@@ -191,26 +273,28 @@ RSGCore.Functions.CreateCallback('rsg-saloon-premium:server:getEmployees', funct
     
     -- Get all employees for this saloon from players table
     local employees = MySQL.query.await([[
-        SELECT p.citizenid, p.charinfo, p.job_grade,
+        SELECT p.citizenid, p.charinfo, p.job,
                COALESCE(e.items_crafted, 0) as items_crafted,
                COALESCE(e.sales_total, 0) as sales_total,
                COALESCE(e.tips_earned, 0) as tips_earned
         FROM players p
         LEFT JOIN saloon_premium_employees e ON p.citizenid = e.citizenid AND e.saloon = ?
-        WHERE p.job = ?
-        ORDER BY p.job_grade DESC
+        WHERE JSON_UNQUOTE(JSON_EXTRACT(p.job, '$.name')) = ?
+        ORDER BY JSON_EXTRACT(p.job, '$.grade.level') DESC
     ]], { saloonId, saloonId })
     
-    -- Parse charinfo to get names
+    -- Parse charinfo and job to get names and grades
     local result = {}
     for _, emp in ipairs(employees or {}) do
         local charinfo = json.decode(emp.charinfo or '{}')
+        local jobData = json.decode(emp.job or '{}')
+        local grade = jobData.grade and jobData.grade.level or 0
         table.insert(result, {
             citizenid = emp.citizenid,
             firstname = charinfo.firstname or 'Unknown',
             lastname = charinfo.lastname or '',
-            grade = emp.job_grade,
-            gradeLabel = GetGradeLabel(emp.job_grade),
+            grade = grade,
+            gradeLabel = GetGradeLabel(grade),
             itemsCrafted = emp.items_crafted,
             salesTotal = emp.sales_total,
             tipsEarned = emp.tips_earned

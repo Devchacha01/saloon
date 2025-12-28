@@ -321,8 +321,12 @@ RegisterNetEvent('rsg-saloon-premium:client:consumeProp', function(propData)
         Wait(3000)
         ClearPedTasks(playerPed)
         
-        -- Restore hunger
+        -- Restore hunger (Client-side HUD update to match rsg-consume)
+        local currentHunger = LocalPlayer.state.hunger or 0
+        TriggerEvent('hud:client:UpdateHunger', currentHunger + 30)
+        -- Also sync to server just in case
         TriggerServerEvent('rsg-saloon:server:restoreHunger', 30)
+        
         lib.notify({ type = 'success', description = 'That was delicious!' })
     else
         -- Simple drinking animation
@@ -330,8 +334,12 @@ RegisterNetEvent('rsg-saloon-premium:client:consumeProp', function(propData)
         Wait(3000)
         ClearPedTasks(playerPed)
         
-        -- Restore thirst
+        -- Restore thirst (Client-side HUD update to match rsg-consume)
+        local currentThirst = LocalPlayer.state.thirst or 0
+        TriggerEvent('hud:client:UpdateThirst', currentThirst + 30)
+        -- Also sync to server just in case
         TriggerServerEvent('rsg-saloon:server:restoreThirst', 30)
+        
         lib.notify({ type = 'success', description = 'Refreshing!' })
     end
 end)

@@ -146,7 +146,7 @@ RegisterNetEvent('rsg-saloon-premium:server:withdrawCashbox', function(saloonId,
         { saloonId }
     )
     
-    if not cashboxData or not cashboxData[1] or cashboxData[1].balance < amount then
+    if not cashboxData or not cashboxData[1] or tonumber(cashboxData[1].balance) < amount then
         TriggerClientEvent('ox_lib:notify', source, {
             type = 'error',
             description = Config.Locale['cashbox_empty']
@@ -160,8 +160,11 @@ RegisterNetEvent('rsg-saloon-premium:server:withdrawCashbox', function(saloonId,
         { amount, saloonId }
     )
     
+    DebugPrint('Removed from cashbox, adding to player...')
+    
     -- Add money to player
-    Player.Functions.AddMoney('cash', amount, 'saloon-cashbox-withdraw')
+    local success = Player.Functions.AddMoney('cash', amount, 'saloon-cashbox-withdraw')
+    DebugPrint('AddMoney result:', success)
     
     -- Log transaction
     local citizenid = Player.PlayerData.citizenid
@@ -171,6 +174,10 @@ RegisterNetEvent('rsg-saloon-premium:server:withdrawCashbox', function(saloonId,
         INSERT INTO saloon_premium_transactions (saloon, type, amount, citizenid, player_name)
         VALUES (?, 'withdraw', ?, ?, ?)
     ]], { saloonId, amount, citizenid, playerName })
+    
+    if LogAction then
+        LogAction(saloonId, 'cashbox_withdraw', string.format('Withdrew $%s', amount), citizenid, playerName)
+    end
     
     -- Notify player
     TriggerClientEvent('ox_lib:notify', source, {
@@ -182,6 +189,90 @@ RegisterNetEvent('rsg-saloon-premium:server:withdrawCashbox', function(saloonId,
     TriggerClientEvent('rsg-saloon-premium:client:refreshUI', source, saloonId)
     
     DebugPrint('Withdrawal:', amount, 'from', saloonId, 'by', playerName)
+end)
+
+-- ============================================================================
+-- DEPOSIT TO CASHBOX
+-- ============================================================================
+
+RegisterNetEvent('rsg-saloon-premium:server:depositCashbox', function(saloonId, amount)
+    local source = source
+    local Player = RSGCore.Functions.GetPlayer(source)
+    
+    if not Player then return end
+    
+    local playerJob = Player.PlayerData.job.name
+    local saloonConfig = Config.Saloons[saloonId]
+    
+    -- Validate saloon
+    if not saloonConfig then
+        TriggerClientEvent('ox_lib:notify', source, {
+            type = 'error',
+            description = 'Invalid saloon.'
+        })
+        return
+    end
+    
+    -- Check if employee
+    if playerJob ~= saloonId then
+        TriggerClientEvent('ox_lib:notify', source, {
+            type = 'error',
+            description = Config.Locale['not_employee']
+        })
+        return
+    end
+    
+    -- Validate amount
+    amount = tonumber(amount) or 0
+    if amount <= 0 then
+        TriggerClientEvent('ox_lib:notify', source, {
+            type = 'error',
+            description = 'Invalid amount.'
+        })
+        return
+    end
+    
+    -- Check player cash
+    if Player.Functions.GetMoney('cash') < amount then
+        TriggerClientEvent('ox_lib:notify', source, {
+            type = 'error',
+            description = 'Not enough cash.'
+        })
+        return
+    end
+    
+    -- Add to cashbox
+    MySQL.query.await(
+        'UPDATE saloon_premium_cashbox SET balance = balance + ? WHERE saloon = ?',
+        { amount, saloonId }
+    )
+    
+    -- Remove money from player
+    Player.Functions.RemoveMoney('cash', amount, 'saloon-cashbox-deposit')
+    
+    -- Log transaction
+    local citizenid = Player.PlayerData.citizenid
+    local playerName = Player.PlayerData.charinfo.firstname .. ' ' .. Player.PlayerData.charinfo.lastname
+    
+    MySQL.query.await([[
+        INSERT INTO saloon_premium_transactions (saloon, type, amount, citizenid, player_name)
+        VALUES (?, 'deposit', ?, ?, ?)
+    ]], { saloonId, amount, citizenid, playerName })
+    
+    if LogAction then
+        LogAction(saloonId, 'cashbox_deposit', string.format('Deposited $%s', amount), citizenid, playerName)
+    end
+    
+    -- Notify player
+    TriggerClientEvent('ox_lib:notify', source, {
+        type = 'success',
+        description = string.format('Deposited $%s', amount)
+    })
+    
+    -- Refresh UI
+    TriggerClientEvent('rsg-saloon-premium:client:refreshUI', source, saloonId)
+    
+    DebugPrint('Deposit:', amount, 'to', saloonId, 'by', playerName)
 end)
 
 -- ============================================================================

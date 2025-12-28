@@ -12,28 +12,7 @@ local isCrafting = false
 -- CRAFTING ANIMATIONS
 -- ============================================================================
 
-local function PlayCraftingAnimation()
-    local playerPed = PlayerPedId()
-    local animDict = 'amb_work@world_human_bartender@female@base'
-    local animName = 'base'
-    
-    -- Load animation
-    RequestAnimDict(animDict)
-    local timeout = 0
-    while not HasAnimDictLoaded(animDict) and timeout < 5000 do
-        Wait(10)
-        timeout = timeout + 10
-    end
-    
-    if HasAnimDictLoaded(animDict) then
-        TaskPlayAnim(playerPed, animDict, animName, 8.0, -8.0, -1, 1, 0.0, false, false, false)
-    end
-end
 
-local function StopCraftingAnimation()
-    local playerPed = PlayerPedId()
-    ClearPedTasks(playerPed)
-end
 
 -- ============================================================================
 -- CRAFTING NUI CALLBACK
@@ -67,9 +46,8 @@ RegisterNUICallback('startCraft', function(data, cb)
     
     -- Start crafting
     isCrafting = true
-    PlayCraftingAnimation()
     
-    -- Progress bar
+    -- Progress bar with animation from rex-mining workshop
     local success = lib.progressBar({
         duration = recipe.time,
         label = string.format(Config.Locale['crafting_start'], recipe.label),
@@ -80,9 +58,13 @@ RegisterNUICallback('startCraft', function(data, cb)
             move = true,
             combat = true,
         },
+        anim = {
+            dict = 'mech_inventory@crafting@fallbacks',
+            clip = 'full_craft_and_stow',
+            flag = 16,
+        },
     })
     
-    StopCraftingAnimation()
     isCrafting = false
     
     if success then

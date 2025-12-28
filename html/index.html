@@ -54,6 +54,14 @@
                     <i class="fas fa-concierge-bell"></i>
                     <span>Serve</span>
                 </button>
+                <button class="tab employee-only" data-tab="employees" onclick="switchTab('employees')">
+                    <i class="fas fa-users"></i>
+                    <span>Staff</span>
+                </button>
+                <button class="tab manager-only" data-tab="managers_logs" onclick="switchTab('managers_logs')">
+                    <i class="fas fa-clipboard-list"></i>
+                    <span>Logs</span>
+                </button>
                 <button class="tab manager-only" data-tab="cashbox" onclick="switchTab('cashbox')">
                     <i class="fas fa-cash-register"></i>
                     <span>Cashbox</span>
@@ -140,6 +148,30 @@
                     </div>
                 </div>
 
+                <!-- Employees Tab -->
+                <div id="employees-tab" class="tab-panel">
+                    <div class="panel-header">
+                        <h2><i class="fas fa-users"></i> Staff Management</h2>
+                        <div class="header-actions">
+                            <span id="employee-count" class="badge-info">0 / 4 Staff</span>
+                            <button class="btn btn-primary btn-sm" onclick="openHireModal()">
+                                <i class="fas fa-user-plus"></i> Hire
+                            </button>
+                        </div>
+                    </div>
+                    <div class="employees-list-container">
+                        <div class="list-header">
+                            <span>Name</span>
+                            <span>Rank</span>
+                            <span class="text-right">Stats</span>
+                            <span class="text-right">Actions</span>
+                        </div>
+                        <div id="employees-list" class="employees-list">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Cashbox Tab -->
                 <div id="cashbox-tab" class="tab-panel">
                     <div class="panel-header">
@@ -156,16 +188,31 @@
                             </div>
                         </div>
                         <div class="withdraw-section">
-                            <h3>Withdraw Funds</h3>
-                            <div class="input-group">
-                                <label for="withdraw-amount">Amount ($)</label>
-                                <input type="number" id="withdraw-amount" min="1" step="0.01"
-                                    placeholder="Enter amount">
+                            <div class="transaction-group">
+                                <h3>Deposits & Withdrawals</h3>
+                                <div class="finance-actions">
+                                    <div class="action-card">
+                                        <h4>Deposit</h4>
+                                        <div class="input-group">
+                                            <input type="number" id="deposit-amount" min="1" step="0.01"
+                                                placeholder="Amount ($)">
+                                            <button class="btn btn-success" onclick="depositCashbox()">
+                                                <i class="fas fa-arrow-up"></i> Deposit
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="action-card">
+                                        <h4>Withdraw</h4>
+                                        <div class="input-group">
+                                            <input type="number" id="withdraw-amount" min="1" step="0.01"
+                                                placeholder="Amount ($)">
+                                            <button class="btn btn-primary" onclick="withdrawCashbox()">
+                                                <i class="fas fa-hand-holding-dollar"></i> Withdraw
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <button class="btn btn-primary" onclick="withdrawCashbox()">
-                                <i class="fas fa-hand-holding-dollar"></i>
-                                Withdraw
-                            </button>
                         </div>
                         <div class="daily-stats">
                             <h3>Today's Summary</h3>
@@ -192,96 +239,174 @@
                             <div id="transactions-list" class="transactions-list">
                                 <!-- Transactions populated by JS -->
                             </div>
+
+                            <!-- Logs Tab -->
+                            <div id="managers_logs-tab" class="tab-panel">
+                                <div class="panel-header">
+                                    <h2><i class="fas fa-clipboard-list"></i> Activity Logs</h2>
+                                    <button class="btn btn-sm" onclick="getManagerLogs()">
+                                        <i class="fas fa-sync"></i> Refresh
+                                    </button>
+                                </div>
+                                <div class="logs-container">
+                                    <div class="logs-header">
+                                        <span>Time</span>
+                                        <span>Action</span>
+                                        <span>Details</span>
+                                        <span>Staff</span>
+                                    </div>
+                                    <div id="logs-list" class="logs-list">
+                                        <!-- Populated by JS -->
+                                        <div class="loader"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Footer -->
-            <div class="saloon-footer">
-                <span id="employee-badge" class="badge hidden">
-                    <i class="fas fa-id-badge"></i>
-                    Employee
-                </span>
-                <span class="footer-text">RSG Saloon Premium v1.0</span>
-            </div>
-        </div>
-
-        <!-- Purchase Modal -->
-        <div id="purchase-modal" class="modal hidden">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Purchase Item</h3>
-                    <button class="close-btn" onclick="closeModal('purchase-modal')">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div class="modal-item-preview">
-                        <img id="purchase-item-image" src="" alt="">
-                        <div class="item-details">
-                            <h4 id="purchase-item-name">Item Name</h4>
-                            <p id="purchase-item-price">$0.00 each</p>
-                            <p id="purchase-item-stock">Stock: 0</p>
-                        </div>
-                    </div>
-                    <div class="input-group">
-                        <label for="purchase-quantity">Quantity</label>
-                        <input type="number" id="purchase-quantity" min="1" value="1" onchange="updatePurchaseTotal()">
-                    </div>
-                    <div class="input-group">
-                        <label for="purchase-tip">Tip (optional)</label>
-                        <input type="number" id="purchase-tip" min="0" step="0.01" value="0"
-                            onchange="updatePurchaseTotal()">
-                    </div>
-                    <div class="total-display">
-                        <span>Total:</span>
-                        <span id="purchase-total">$0.00</span>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="closeModal('purchase-modal')">Cancel</button>
-                    <button class="btn btn-primary" onclick="confirmPurchase()">
-                        <i class="fas fa-check"></i>
-                        Confirm Purchase
-                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- Refill Modal -->
-        <div id="refill-modal" class="modal hidden">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Refill Shop</h3>
-                    <button class="close-btn" onclick="closeModal('refill-modal')">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div class="modal-item-preview">
-                        <img id="refill-item-image" src="" alt="">
-                        <div class="item-details">
-                            <h4 id="refill-item-name">Item Name</h4>
-                            <p id="refill-item-storage">In Storage: 0</p>
-                        </div>
+        <!-- Footer -->
+        <div class="saloon-footer">
+            <span id="employee-badge" class="badge hidden">
+                <i class="fas fa-id-badge"></i>
+                Employee
+            </span>
+            <span class="footer-text">RSG Saloon Premium v1.0</span>
+        </div>
+    </div>
+
+    <!-- Purchase Modal -->
+    <div id="purchase-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Purchase Item</h3>
+                <button class="close-btn" onclick="closeModal('purchase-modal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-item-preview">
+                    <img id="purchase-item-image" src="" alt="">
+                    <div class="item-details">
+                        <h4 id="purchase-item-name">Item Name</h4>
+                        <p id="purchase-item-price">$0.00 each</p>
+                        <p id="purchase-item-stock">Stock: 0</p>
                     </div>
-                    <div class="input-group">
-                        <label for="refill-quantity">Quantity to Add</label>
-                        <input type="number" id="refill-quantity" min="1" value="1">
-                    </div>
-                    <div class="input-group">
-                        <label for="refill-price">Price per Item ($)</label>
-                        <input type="number" id="refill-price" min="0.01" step="0.01" value="1.00">
+                </div>
+                <div class="input-group">
+                    <label for="purchase-quantity">Quantity</label>
+                    <input type="number" id="purchase-quantity" min="1" value="1" onchange="updatePurchaseTotal()">
+                </div>
+                <div class="input-group">
+                    <label for="purchase-tip">Tip (optional)</label>
+                    <input type="number" id="purchase-tip" min="0" step="0.01" value="0"
+                        onchange="updatePurchaseTotal()">
+                </div>
+                <div class="total-display">
+                    <span>Total:</span>
+                    <span id="purchase-total">$0.00</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('purchase-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmPurchase()">
+                    <i class="fas fa-check"></i>
+                    Confirm Purchase
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Refill Modal -->
+    <div id="refill-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Refill Shop</h3>
+                <button class="close-btn" onclick="closeModal('refill-modal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-item-preview">
+                    <img id="refill-item-image" src="" alt="">
+                    <div class="item-details">
+                        <h4 id="refill-item-name">Item Name</h4>
+                        <p id="refill-item-storage">In Storage: 0</p>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="closeModal('refill-modal')">Cancel</button>
-                    <button class="btn btn-primary" onclick="confirmRefill()">
-                        <i class="fas fa-arrow-right"></i>
-                        Add to Shop
-                    </button>
+                <div class="input-group">
+                    <label for="refill-quantity">Quantity to Add</label>
+                    <input type="number" id="refill-quantity" min="1" value="1">
                 </div>
+                <div class="input-group">
+                    <label for="refill-price">Price per Item ($)</label>
+                    <input type="number" id="refill-price" min="0.01" step="0.01" value="1.00">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('refill-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmRefill()">
+                    <i class="fas fa-arrow-right"></i>
+                    Add to Shop
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hire Modal -->
+    <div id="hire-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Hire New Staff</h3>
+                <button class="close-btn" onclick="closeModal('hire-modal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label>Select Player</label>
+                    <div id="hire-player-list" class="player-list">
+                        <!-- Populated by JS -->
+                        <div class="loader"><i class="fas fa-spinner fa-spin"></i> Searching...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('hire-modal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Withdraw Modal -->
+    <div id="withdraw-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Withdraw Item</h3>
+                <button class="close-btn" onclick="closeModal('withdraw-modal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-item-preview">
+                    <img id="withdraw-item-image" src="" alt="">
+                    <div class="item-details">
+                        <h4 id="withdraw-item-name">Item Name</h4>
+                        <p id="withdraw-item-storage">In Storage: 0</p>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label for="withdraw-quantity">Quantity to Withdraw</label>
+                    <input type="number" id="withdraw-quantity" min="1" value="1">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('withdraw-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmWithdraw()">
+                    <i class="fas fa-box-open"></i>
+                    Withdraw to Inventory
+                </button>
             </div>
         </div>
     </div>

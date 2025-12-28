@@ -1,19 +1,24 @@
--- ============================================================================
--- RSG SALOON PREMIUM - SERVER MAIN
--- Core server-side logic and initialization
--- ============================================================================
+
 
 local RSGCore = exports['rsg-core']:GetCoreObject()
 
--- ============================================================================
--- UTILITY FUNCTIONS
--- ============================================================================
+
 
 -- Debug print helper
 local function DebugPrint(...)
     if Config.Debug then
         print('[Saloon Premium]', ...)
     end
+end
+
+local function GetGradeLabel(grade)
+    local labels = {
+        [0] = 'Helper',
+        [1] = 'Bartender',
+        [2] = 'Manager',
+        [3] = 'Boss'
+    }
+    return labels[grade] or 'Grade ' .. grade
 end
 
 -- Get player's saloon job and grade
@@ -60,9 +65,7 @@ local function GetCitizenId(source)
     return Player.PlayerData.citizenid
 end
 
--- ============================================================================
--- EXPORTS FOR OTHER RESOURCES
--- ============================================================================
+
 
 exports('GetSaloonInfo', function(saloonId)
     return Config.Saloons[saloonId]
@@ -72,9 +75,7 @@ exports('GetAllSaloons', function()
     return Config.Saloons
 end)
 
--- ============================================================================
--- PLAYER DATA CALLBACKS
--- ============================================================================
+
 
 -- Get saloon data for UI
 RSGCore.Functions.CreateCallback('rsg-saloon-premium:server:getSaloonData', function(source, cb, saloonId)
@@ -87,13 +88,34 @@ RSGCore.Functions.CreateCallback('rsg-saloon-premium:server:getSaloonData', func
         return
     end
     
-    -- Get shop stock
-    local shopStock = MySQL.query.await('SELECT * FROM saloon_premium_stock WHERE saloon = ?', { saloonId })
+    -- Get shop stock - enriched with labels
+    local shopStock = {}
+    local rawShopStock = MySQL.query.await('SELECT * FROM saloon_premium_stock WHERE saloon = ?', { saloonId })
+    for _, item in ipairs(rawShopStock or {}) do
+        local itemInfo = RSGCore.Shared.Items[item.item]
+        table.insert(shopStock, {
+            item = item.item,
+            label = itemInfo and itemInfo.label or item.item,
+            quantity = item.quantity,
+            price = item.price,
+            image = itemInfo and itemInfo.image or (item.item .. '.png'),
+        })
+    end
     
-    -- Get storage (only for employees)
+    -- Get storage (only for employees) - enriched with labels
     local storage = {}
     if isEmployee then
-        storage = MySQL.query.await('SELECT * FROM saloon_premium_storage WHERE saloon = ?', { saloonId })
+        local rawStorage = MySQL.query.await('SELECT * FROM saloon_premium_storage WHERE saloon = ?', { saloonId })
+        for _, item in ipairs(rawStorage or {}) do
+            local itemInfo = RSGCore.Shared.Items[item.item]
+            table.insert(storage, {
+                item = item.item,
+                label = itemInfo and itemInfo.label or item.item,
+                quantity = item.quantity,
+                image = itemInfo and itemInfo.image or (item.item .. '.png'),
+                defaultPrice = Config.DefaultPrices[item.item] or 1.00,
+            })
+        end
     end
     
     -- Get cashbox balance (only for managers+)
@@ -114,12 +136,12 @@ RSGCore.Functions.CreateCallback('rsg-saloon-premium:server:getSaloonData', func
         )
     end
     
-    -- Build response
     local data = {
         saloonId = saloonId,
         saloonName = saloonConfig.name,
         isEmployee = isEmployee,
         playerGrade = grade or 0,
+        playerGradeLabel = GetGradeLabel(grade or 0),
         permissions = {
             canCraft = isEmployee and (grade >= saloonConfig.grades.crafting),
             canRefill = isEmployee and (grade >= saloonConfig.grades.refill),
@@ -160,9 +182,7 @@ RSGCore.Functions.CreateCallback('rsg-saloon-premium:server:getPlayerInventory',
     cb(inventory)
 end)
 
--- ============================================================================
--- INITIALIZATION
--- ============================================================================
+
 
 -- Initialize cashbox entries for all saloons on resource start
 CreateThread(function()
@@ -181,9 +201,7 @@ CreateThread(function()
     DebugPrint('Initialized cashbox entries and storage stashes for all saloons')
 end)
 
--- ============================================================================
--- PERSONAL STORAGE (RSG-INVENTORY STASH)
--- ============================================================================
+
 
 -- Server event to open personal saloon storage
 RegisterNetEvent('rsg-saloon:server:openStorage', function(saloonId)

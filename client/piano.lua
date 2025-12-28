@@ -1,8 +1,6 @@
 -- ============================================================================
 -- RSG SALOON PREMIUM - PIANO SYSTEM
 -- Play piano at saloon locations with animations
--- Based on Don Dapper & DevDokus piano scripts, converted for RSGCore
--- Uses rsg-target for interaction
 -- ============================================================================
 
 local RSGCore = exports['rsg-core']:GetCoreObject()

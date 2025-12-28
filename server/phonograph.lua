@@ -1,7 +1,6 @@
 -- ============================================================================
 -- RSG SALOON PREMIUM - SERVER PHONOGRAPH
 -- Handles phonograph placement and audio sync
--- Enhanced version based on boss-phonograph by BossDev
 -- ============================================================================
 
 local RSGCore = exports['rsg-core']:GetCoreObject()

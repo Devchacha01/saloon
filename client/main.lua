@@ -1,7 +1,4 @@
--- ============================================================================
--- RSG SALOON PREMIUM - CLIENT MAIN
--- Core client-side logic, UI management, and target interactions
--- ============================================================================
+
 
 local RSGCore = exports['rsg-core']:GetCoreObject()
 
@@ -10,9 +7,7 @@ local currentSaloon = nil
 local isMenuOpen = false
 local saloonBlips = {}
 
--- ============================================================================
--- UTILITY FUNCTIONS
--- ============================================================================
+
 
 local function DebugPrint(...)
     if Config.Debug then
@@ -35,9 +30,7 @@ local function IsEmployeeAt(saloonId)
     return job == saloonId
 end
 
--- ============================================================================
--- NUI CALLBACKS
--- ============================================================================
+
 
 RegisterNUICallback('closeUI', function(_, cb)
     SetNuiFocus(false, false)
@@ -47,13 +40,78 @@ RegisterNUICallback('closeUI', function(_, cb)
 end)
 
 RegisterNUICallback('ready', function(_, cb)
-    DebugPrint('NUI ready')
     cb('ok')
 end)
 
--- ============================================================================
--- OPEN SALOON MENU
--- ============================================================================
+
+
+RegisterNUICallback('getNearbyPlayers', function(_, cb)
+    local playerPed = PlayerPedId()
+    local coords = GetEntityCoords(playerPed)
+    local nearby = {}
+    
+    -- Loop through active players
+    for _, playerId in ipairs(GetActivePlayers()) do
+        if playerId ~= PlayerId() then -- Exclude self
+            local targetPed = GetPlayerPed(playerId)
+            local targetCoords = GetEntityCoords(targetPed)
+            
+            if #(coords - targetCoords) < 5.0 then
+                local serverId = GetPlayerServerId(playerId)
+                table.insert(nearby, {
+                    id = serverId,
+                    name = GetPlayerName(playerId) .. ' (' .. serverId .. ')'
+                })
+            end
+        end
+    end
+    
+    cb(nearby)
+end)
+
+RegisterNUICallback('hirePlayer', function(data, cb)
+    TriggerServerEvent('rsg-saloon-premium:server:hirePlayer', data.targetId, data.saloonId)
+    cb('ok')
+end)
+
+RegisterNUICallback('firePlayer', function(data, cb)
+    TriggerServerEvent('rsg-saloon-premium:server:firePlayer', data.targetId, data.saloonId)
+    cb('ok')
+end)
+
+RegisterNUICallback('promotePlayer', function(data, cb)
+    TriggerServerEvent('rsg-saloon-premium:server:promotePlayer', data.targetId, data.saloonId)
+    cb('ok')
+end)
+
+RegisterNUICallback('getEmployees', function(data, cb)
+    RSGCore.Functions.TriggerCallback('rsg-saloon-premium:server:getEmployees', function(employees)
+        cb(employees or {})
+    end, data.saloonId)
+end)
+
+RegisterNUICallback('withdrawStorage', function(data, cb)
+    TriggerServerEvent('rsg-saloon-premium:server:withdrawStorage', data.saloonId, data.item, data.quantity)
+    cb('ok')
+end)
+
+RegisterNUICallback('getLogs', function(data, cb)
+    RSGCore.Functions.TriggerCallback('rsg-saloon-premium:server:getLogs', function(logs)
+        cb(logs or {})
+    end, data.saloonId)
+end)
+
+RegisterNUICallback('withdrawCashbox', function(data, cb)
+    TriggerServerEvent('rsg-saloon-premium:server:withdrawCashbox', data.saloonId, data.amount)
+    cb('ok')
+end)
+
+RegisterNUICallback('depositCashbox', function(data, cb)
+    TriggerServerEvent('rsg-saloon-premium:server:depositCashbox', data.saloonId, data.amount)
+    cb('ok')
+end)
+
+
 
 local function OpenSaloonMenu(saloonId)
     if isMenuOpen then return end
@@ -88,6 +146,7 @@ local function OpenSaloonMenu(saloonId)
                 saloonName = data.saloonName,
                 isEmployee = data.isEmployee,
                 playerGrade = data.playerGrade,
+                playerGradeLabel = data.playerGradeLabel,
                 permissions = data.permissions,
                 shopStock = data.shopStock,
                 storage = data.storage,
@@ -107,9 +166,7 @@ end
 -- Export for external resources
 exports('OpenSaloonMenu', OpenSaloonMenu)
 
--- ============================================================================
--- REFRESH UI (after crafting, purchase, etc.)
--- ============================================================================
+
 
 RegisterNetEvent('rsg-saloon-premium:client:refreshUI', function(saloonId)
     if not isMenuOpen or currentSaloon ~= saloonId then return end
@@ -130,9 +187,7 @@ RegisterNetEvent('rsg-saloon-premium:client:refreshUI', function(saloonId)
     end, saloonId)
 end)
 
--- ============================================================================
--- TARGET ZONES (OX_TARGET)
--- ============================================================================
+
 
 local function SetupTargetZones()
     for saloonId, saloon in pairs(Config.Saloons) do
@@ -183,9 +238,7 @@ local function SetupTargetZones()
     end
 end
 
--- ============================================================================
--- BLIPS
--- ============================================================================
+
 
 local function CreateBlips()
     for saloonId, saloon in pairs(Config.Saloons) do
@@ -208,9 +261,7 @@ local function RemoveBlips()
     saloonBlips = {}
 end
 
--- ============================================================================
--- KEYBIND (optional) - Using ox_lib for RedM compatibility
--- ============================================================================
+
 
 if Config.Keybind then
     -- Register command for keybind
@@ -250,9 +301,7 @@ if Config.Keybind then
     })
 end
 
--- ============================================================================
--- INITIALIZATION
--- ============================================================================
+
 
 CreateThread(function()
     Wait(1000)
