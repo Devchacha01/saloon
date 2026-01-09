@@ -49,7 +49,7 @@ Premium saloon management for RedM/RSGCore. Features crafting, table service, dr
 ---
 
 ## 🚀 Installation
-
+## 📋 make sure to rename the file as rsg-saloon
 ### 1. Database
 ```sql
 source installation/saloon_premium.sql;
