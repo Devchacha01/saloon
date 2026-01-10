@@ -108,7 +108,7 @@ function StartDrunkEffects()
         -- Cleanup when sober
         local player = PlayerPedId()
         -- RedM: Reset movement clipset (use native hash instead of FiveM function)
-        Citizen.InvokeNative(0xAA74EC0CB0F2CFAFULL, player, 1.0) -- ResetPedMovementClipset
+        Citizen.InvokeNative(0xAA74EC0CB0F2CFAF, player, 1.0) -- ResetPedMovementClipset
         ShakeGameplayCam('', 0.0)
         AnimpostfxStop('PlayerDrunk01')
         
@@ -149,7 +149,7 @@ function ApplyDrunkEffects(player, level)
         SetPedMovementClipset(player, 'MOVE_M@DRUNK@SLIGHTLYDRUNK', 1.0)
     else
         -- RedM: Reset movement clipset
-        Citizen.InvokeNative(0xAA74EC0CB0F2CFAFULL, player, 1.0) -- ResetPedMovementClipset
+        Citizen.InvokeNative(0xAA74EC0CB0F2CFAF, player, 1.0) -- ResetPedMovementClipset
     end
     
     -- Random stumble/ragdoll at high levels
@@ -181,7 +181,7 @@ RegisterNetEvent('rsg-saloon-premium:client:fullSober', function()
     DecorSetFloat(player, CAC, 0.0)
     DecorSetFloat(player, TAC, 0.0)
     -- RedM: Reset movement clipset
-    Citizen.InvokeNative(0xAA74EC0CB0F2CFAFULL, player, 1.0) -- ResetPedMovementClipset
+    Citizen.InvokeNative(0xAA74EC0CB0F2CFAF, player, 1.0) -- ResetPedMovementClipset
     ShakeGameplayCam('', 0.0)
     AnimpostfxStop('PlayerDrunk01')
 end)
